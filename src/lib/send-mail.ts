@@ -2,20 +2,32 @@
  * @Author: lzw
  * @Date: 2021-01-14 21:35:47
  * @LastEditors: lzw
- * @LastEditTime: 2021-01-14 22:50:12
+ * @LastEditTime: 2021-01-23 18:50:12
  * @Description: send exchange mail by node-ews
  */
 import EWS from 'node-ews';
-import { toMailAddressList } from './utils';
+import { delEmptyKeys, PlainObject, toMailAddressList, log } from './utils';
 
-interface PlainObject {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any;
+interface ISoapHeader extends PlainObject {
+  't:RequestServerVersion'?: { attributes: { Version: string } };
 }
 
+/**
+ * 附件项格式
+ */
+export interface IAttachmentItem extends PlainObject {
+  /** 附件名称 */
+  Name: string;
+  /** 附件类型(如文本： text/plain) */
+  ContentType: string;
+  /** 附件内容(请使用 base64 编码) */
+  Content: string; // 'VGhpcyBpcyB0aGUgc2Vjb25kIGZpbGUgYXR0YWNobWVudC4=';
+  /** 是否为联系人图片 */
+  IsContactPhoto?: boolean;
+  /** 是否内联显示在项目中 */
+  IsInline?: boolean;
+}
 export interface IEwsSendOptions {
-  /** Exchange 地址 */
-  host?: string;
   /** 邮件主题 */
   subject?: string;
   /** HTML 格式邮件正文内容 */
@@ -26,36 +38,53 @@ export interface IEwsSendOptions {
   to?: string | string[];
   /** 抄送人列表 */
   cc?: string | string[];
-  /** 暗抄送人列表 */
+  /** 密送人列表 */
   bcc?: string | string[];
-  /** node-ews 配置初始化 */
+  /** 回复人列表 */
+  replyTo?: string | string[];
+  from?: string;
+  /** 标识项目的发件人 */
+  sender?: string;
+  receivedBy?: string;
+  /** 标识代理访问方案中的主体。与代理访问方案中的 From 和 ReceivedBy 元素一起使用 */
+  receivedRepresenting?: string;
+  /** 附件列表
+   *
+   * {@link https://docs.microsoft.com/en-us/exchange/client-developer/web-service-reference/attachments-ex15websvcsotherref|相关文档参考 }
+   * {@link https://github.com/CumberlandGroup/node-ews/issues/40|发送附件参考 }
+   */
+  attachments?: IAttachmentItem[];
+  /**
+   * 其他 Message 子属性配置。用于扩展不同版本可能存在的差异字段。具体可通过 `https://<ews服务器host>/ews/types.xsd` 的 Message 类型定义查询
+   *
+   * {@link https://docs.microsoft.com/en-us/exchange/client-developer/web-service-reference/message-ex15websvcsotherref|官方文档相关格式说明参考}
+   */
+  messageExtends?: PlainObject;
+  /** ewsArgs.Item 其他属性扩展配置。用于配置扩展。例如增加发送附件相关的配置 */
+  itemExtends?: PlainObject;
+  /** node-ews: 配置初始化参数 */
   ewsConfig?: {
     /** Exchange 服务地址 */
     host?: string;
+    /** 用户名 */
     username?: string;
+    /** 密码 */
     password?: string;
     /** 密码加密后的秘钥(NTLMAuth.nt_password)。为字符串时，应为 hex 编码结果 */
     nt_password?: string | Buffer;
     /** 密码加密后的秘钥(NTLMAuth.lm_password)。为字符串时，应为 hex 编码结果 */
     lm_password?: string | Buffer;
-    auth?: 'basic' | 'bearer';
+    /** 基于 auth=bearer 授权模式时的 token */
+    token?: string;
+    /** 授权模式。默认为 ntlm */
+    auth?: 'basic' | 'bearer' | 'ntlm';
+    /** 指定临时文件目录 */
+    temp?: string;
   } & PlainObject;
-  /** node-ews 额外的 headers */
-  ewsHeaders?: {
-    't:RequestServerVersion': { attributes: { Version: string } };
-  } & PlainObject;
-  /** 附件列表 */
-  attachments?: {
-    /** 附件名称 */
-    Name: string;
-    /** 附件内容(文本请使用 base64 编码) */
-    Content: 'VGhpcyBpcyB0aGUgc2Vjb25kIGZpbGUgYXR0YWNobWVudC4=';
-    IsInline: boolean;
-    /** 是否包含图片 */
-    IsContactPhoto: boolean;
-    /** 附件类型(如文本： text/plain) */
-    ContentType: string;
-  }[];
+  /** node-ews: EWS 第二个参数，视不同 auth 类型而不同 */
+  ewsOptions?: PlainObject;
+  /** node-ews soapHeader */
+  soapHeader?: ISoapHeader | ((method, location, soapAction, args) => ISoapHeader);
 }
 
 /**
@@ -74,17 +103,16 @@ export async function sendMailByEws(options: IEwsSendOptions) {
   const toRecipients = toMailAddressList(options.to);
   const ewsConfig: IEwsSendOptions['ewsConfig'] = Object.assign(
     {
-      host: options.host,
       // auth: 'ntlm',
     },
     options.ewsConfig
   );
 
   if (!ewsConfig.username || (!ewsConfig.password && !ewsConfig.lm_password)) {
-    resultInfo.code = -1003;
+    resultInfo.code = -1001;
     resultInfo.msg = 'Options.ewsConfig.uername or Options.ewsConfig.password can not be null';
   } else if (!toRecipients.length) {
-    resultInfo.code = -1004;
+    resultInfo.code = -1002;
     resultInfo.msg = 'Options.to can not be null';
   }
 
@@ -100,9 +128,7 @@ export async function sendMailByEws(options: IEwsSendOptions) {
     if (!ewsConfig[key]) delete ewsConfig[key];
   });
 
-  const ews = new EWS(ewsConfig);
-  const ccRecipients = toMailAddressList(options.cc);
-  const bccRecipients = toMailAddressList(options.bcc);
+  const ews = new EWS(ewsConfig, options.ewsOptions);
   /** ews api function */
   const ewsFunction = 'CreateItem';
   /** ews api function args */
@@ -127,14 +153,27 @@ export async function sendMailByEws(options: IEwsSendOptions) {
           },
           $value: options.html || options.text,
         },
+        From: {
+          Mailbox: toMailAddressList(options.from).map((to) => ({ EmailAddress: to })),
+        },
+        Sender: {
+          Mailbox: toMailAddressList(options.sender).map((to) => ({ EmailAddress: to })),
+        },
+        ReplyTo: {
+          Mailbox: toMailAddressList(options.replyTo).map((to) => ({ EmailAddress: to })),
+        },
+        ReceivedBy: {
+          Mailbox: toMailAddressList(options.receivedBy).map((to) => ({ EmailAddress: to })),
+        },
+        ReceivedRepresenting: toMailAddressList(options.receivedRepresenting).map((to) => ({ EmailAddress: to })),
         ToRecipients: {
-          Mailbox: toRecipients.map((to) => ({ EmailAddress: to })),
+          Mailbox: toMailAddressList(options.to).map((to) => ({ EmailAddress: to })),
         },
         CcRecipients: {
-          Mailbox: ccRecipients.map((to) => ({ EmailAddress: to })),
+          Mailbox: toMailAddressList(options.cc).map((to) => ({ EmailAddress: to })),
         },
         BccRecipients: {
-          Mailbox: bccRecipients.map((to) => ({ EmailAddress: to })),
+          Mailbox: toMailAddressList(options.bcc).map((to) => ({ EmailAddress: to })),
         },
         IsRead: 'false',
         Attachments: {
@@ -144,18 +183,33 @@ export async function sendMailByEws(options: IEwsSendOptions) {
     },
   };
 
-  if (!ccRecipients.length) delete ewsArgs.Items.Message.CcRecipients;
-  if (!bccRecipients.length) delete ewsArgs.Items.Message.BccRecipients;
-  if (!Array.isArray(options.attachments)) delete ewsArgs.Items.Message.Attachments;
+  if (options.itemExtends) {
+    if (options.itemExtends.Message) {
+      console.warn('请通过 options.messageExtends 参数配置 Message 扩展信息', options.itemExtends.Message);
+      delete options.itemExtends.Message;
+    }
+
+    Object.assign(ewsArgs.Items, options.itemExtends);
+  }
+  if (options.messageExtends) Object.assign(ewsArgs.Items.Message, options.messageExtends);
+
+  // 移除部分空值属性
+  delEmptyKeys(ewsArgs);
+  log(JSON.stringify(ewsArgs, null, 2));
 
   try {
-    const result = await ews.run(ewsFunction, ewsArgs, options.ewsHeaders);
-    // console.log('mail sent to:', options.to, ' response:', result);
+    const result = await ews.run(ewsFunction, ewsArgs, options.soapHeader);
     resultInfo.result = result;
-    if (result.ResponseMessages.MessageText) resultInfo.msg = result.ResponseMessages.MessageText;
+    log('send mail result:\n', JSON.stringify(result));
+
+    const cirMsg = result.ResponseMessages.CreateItemResponseMessage;
+    if (cirMsg) {
+      if (cirMsg.MessageText) resultInfo.msg = cirMsg.MessageText;
+      if (cirMsg.ResponseCode !== 'NoError') resultInfo.code = cirMsg.ResponseCode;
+    }
   } catch (err) {
     console.log(err.message || 'ERROR:', '\n\n', err.stack);
-    resultInfo.code = 1001;
+    resultInfo.code = err.code || 9001;
     resultInfo.msg = err.message || err.stack;
   }
 
