@@ -7,7 +7,7 @@
     "moduleResolution": "node",
     "module": "commonjs",
     "declaration": true,
-    "inlineSourceMap": true,
+    "inlineSourceMap": false,
     "esModuleInterop": true,
     "resolveJsonModule": true,
     // "strict": true /* Enable all strict type-checking options. */,

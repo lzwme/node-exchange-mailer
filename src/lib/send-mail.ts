@@ -6,7 +6,7 @@
  * @Description: send exchange mail by node-ews
  */
 import EWS from 'node-ews';
-import { delEmptyKeys, PlainObject, toMailAddressList, log } from './utils';
+import { delEmptyKeys, log, PlainObject, toMailAddressList } from './utils';
 
 interface ISoapHeader extends PlainObject {
   't:RequestServerVersion'?: { attributes: { Version: string } };
