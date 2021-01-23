@@ -14,17 +14,24 @@ interface ISoapHeader extends PlainObject {
 
 /**
  * 附件项格式
+ *
+ * {@link https://docs.microsoft.com/en-us/exchange/client-developer/web-service-reference/attachments-ex15websvcsotherref | 相关文档参考 }
+ * {@link https://github.com/CumberlandGroup/node-ews/issues/40 | 发送附件参考 }
  */
 export interface IAttachmentItem extends PlainObject {
   /** 附件名称 */
   Name: string;
-  /** 附件类型(如文本： text/plain) */
+  /** 附件扩展（MIME）类型(如文本： text/plain，png图片： image/png) */
   ContentType: string;
   /** 附件内容(请使用 base64 编码) */
   Content: string; // 'VGhpcyBpcyB0aGUgc2Vjb25kIGZpbGUgYXR0YWNobWVudC4=';
+  /** 附件唯一标记，可在邮件正文中引用 */
+  ContentId?: string;
+  /** 包含与附件内容的位置相对应的统一资源标识符（URI） */
+  ContentLocation?: string;
   /** 是否为联系人图片 */
   IsContactPhoto?: boolean;
-  /** 是否内联显示在项目中 */
+  /** 是否内联显示 */
   IsInline?: boolean;
 }
 export interface IEwsSendOptions {
@@ -50,14 +57,14 @@ export interface IEwsSendOptions {
   receivedRepresenting?: string;
   /** 附件列表
    *
-   * {@link https://docs.microsoft.com/en-us/exchange/client-developer/web-service-reference/attachments-ex15websvcsotherref|相关文档参考 }
-   * {@link https://github.com/CumberlandGroup/node-ews/issues/40|发送附件参考 }
+   * {@link https://docs.microsoft.com/en-us/exchange/client-developer/web-service-reference/attachments-ex15websvcsotherref | 相关文档参考 }
+   * {@link https://github.com/CumberlandGroup/node-ews/issues/40 | 发送附件参考 }
    */
   attachments?: IAttachmentItem[];
   /**
    * 其他 Message 子属性配置。用于扩展不同版本可能存在的差异字段。具体可通过 `https://<ews服务器host>/ews/types.xsd` 的 Message 类型定义查询
    *
-   * {@link https://docs.microsoft.com/en-us/exchange/client-developer/web-service-reference/message-ex15websvcsotherref|官方文档相关格式说明参考}
+   * {@link https://docs.microsoft.com/en-us/exchange/client-developer/web-service-reference/message-ex15websvcsotherref | 官方文档相关格式说明参考}
    */
   messageExtends?: PlainObject;
   /** ewsArgs.Item 其他属性扩展配置。用于配置扩展。例如增加发送附件相关的配置 */

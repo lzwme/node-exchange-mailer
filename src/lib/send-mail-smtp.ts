@@ -3,9 +3,9 @@ import { PlainObject, toMailAddressList } from './utils';
 
 /**
  * sendMail(data) 发送邮件的数据配置
- * {@link https://nodemailer.com/message/|详细参考}
+ * {@link https://nodemailer.com/message/ | 详细参考}
  */
-export interface SmtpMsgOptions extends PlainObject {
+export interface ISmtpMsgOptions extends PlainObject {
   from?: string;
   replayTo?: string;
   sender?: string;
@@ -28,11 +28,14 @@ export interface SmtpMsgOptions extends PlainObject {
   /** 附件内容 */
   attachments?: {
     filename?: string;
-    path: string;
+    path?: string;
+    content?: string | Buffer;
+    /** 在邮件正文中的引用 ID */
+    cid?: string;
   }[];
 }
 
-export interface SmtpConfig extends PlainObject {
+export interface ISmtpConfig extends PlainObject {
   auth: {
     /** login or oauth2 */
     type?: string;
@@ -49,12 +52,13 @@ export interface SmtpConfig extends PlainObject {
   secure?: boolean;
   pool?: boolean;
   tls?: PlainObject;
+  sevice?: string;
 }
 
 /**
  * 基于 smtp 协议发送邮件
  */
-export async function sendMailBySmtp(options: SmtpMsgOptions, smtpConfig: SmtpConfig) {
+export async function sendMailBySmtp(options: ISmtpMsgOptions, smtpConfig: ISmtpConfig) {
   const resultInfo = {
     /** 状态码。 为 0 表示成功，否则表示失败 */
     code: 0,
@@ -77,7 +81,7 @@ export async function sendMailBySmtp(options: SmtpMsgOptions, smtpConfig: SmtpCo
       //     filename: 'test.txt',
       //     path: path.resolve(__dirname, 'test.txt')
       // }],
-    } as SmtpMsgOptions,
+    } as ISmtpMsgOptions,
     options
   );
 

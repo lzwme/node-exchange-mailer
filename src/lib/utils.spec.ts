@@ -5,7 +5,7 @@ test('toMailAddressList', async (t) => {
   let emailList = [];
 
   // 错误的邮箱地址，均返回 []
-  ['', 'abc', '@abc.com', '123@', [], ['', 'abc'], ['@abc']].forEach((to) => {
+  [null, void 0, '', 'abc', '@abc.com', '123@', [], ['', 'abc'], ['@abc']].forEach((to) => {
     emailList = toMailAddressList(to);
     t.is(emailList.length, 0);
   });
@@ -40,4 +40,8 @@ test('delEmptyKeys', (t) => {
   t.is(testval2.obj.b, void 0);
   t.is(testval2.obj.d, void 0);
   t.is(testval2.obj.m, void 0);
+
+  [{}, [], null].forEach((d) => {
+    t.is(delEmptyKeys(d), d);
+  });
 });

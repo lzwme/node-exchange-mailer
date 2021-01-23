@@ -2,13 +2,16 @@ process.env.DEBUG = '*';
 
 import { readFileSync } from 'fs';
 import path from 'path';
-import { IAttachmentItem, sendMailByEws, IEwsSendOptions } from '../src';
+import { sendMailByEws, IEwsSendOptions } from '../src';
 import testConfig from '../test.config';
 
 const options: IEwsSendOptions = {
   subject: '[ews]邮件附件测试',
   to: testConfig.to,
-  html: 'HTML 格式内容，<b>包含附件</b>',
+  html: [
+    `HTML 格式内容，<b>包含附件</b>: <a href="https://lzw.me">https://lzw.me</a>`,
+    `<img src='cid:png01' style='width:144px;height:auto'>`,
+  ].join('<br>'),
   ewsConfig: testConfig.ewsConfig,
   // soapHeader: (method, location, soapAction, args) => {
   //   console.log('soapHeader:', method, location, soapAction, args);
@@ -50,6 +53,7 @@ const options: IEwsSendOptions = {
       Content: readFileSync(path.resolve(__dirname, './lzwme-144x144.png'), { encoding: 'base64' }),
       IsContactPhoto: false,
       IsInline: true,
+      ContentId: 'png01',
     },
   ],
 };
