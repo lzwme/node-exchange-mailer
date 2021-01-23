@@ -1,6 +1,6 @@
 {
-  "name": "node-exchange-mailer",
-  "version": "1.0.0",
+  "name": "@lzwme/node-exchange-mailer",
+  "version": "1.1.0",
   "description": "使用 nodejs 发送基于 EWS(Microsoft Exchange Web Serveice) 邮件服务的邮件。",
   "main": "build/main/index.js",
   "typings": "build/main/index.d.ts",
@@ -36,7 +36,7 @@
     "fix": "run-s fix:*",
     "fix:prettier": "prettier --single-quote \"src/**/*.ts\" --write",
     "fix:lint": "eslint src --ext .ts --fix",
-    "test": "run-s build test:*",
+    "test": "run-s fix build test:*",
     "test:lint": "eslint src --ext .ts",
     "test:prettier": "prettier \"src/**/*.ts\" --list-different",
     "spelling": "cspell \"{README.md,.github/*.md,src/**/*.ts}\"",
@@ -55,9 +55,9 @@
     "doc:html": "typedoc src/ --exclude **/*.spec.ts --target ES6 --mode file --out build/docs",
     "doc:json": "typedoc src/ --exclude **/*.spec.ts --target ES6 --mode file --json build/docs/typedoc.json",
     "version": "standard-version",
-    "reset-hard": "git clean -dfx && git reset --hard && yarn",
+    "clear": "shx rm -rf build",
     "publish": "npm publish --registry=https://registry.npmjs.org/",
-    "prepare-release": "run-s reset-hard test cov:check doc:html version"
+    "prepare-release": "run-s clear test cov:check doc:html version"
   },
   "dependencies": {
     "httpntlm": "^1.7.6",
