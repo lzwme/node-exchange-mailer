@@ -1,5 +1,5 @@
 [![Code Climate](https://lzw.me/images/logo.png)](https://lzw.me)
-[![@lzwme/node-exchange-mailer](https://nodei.co/npm/@lzwme/node-exchange-mailer.png)](npm-url)
+[![@lzwme/node-exchange-mailer](https://nodei.co/npm/@lzwme/node-exchange-mailer.png)][npm-url]
 
 # node-exchange-mailer
 
