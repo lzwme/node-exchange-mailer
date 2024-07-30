@@ -1,11 +1,29 @@
-diff
-.idea/*
-.nyc_output
-build
-node_modules
-src/**.js
+.grs.config.js
+npm-debug.log
+.DS_Store
+/release/
+/debug/
+/dist/
+/esm
+/cjs
+/docs
+/config
+/cache
+tmp
 coverage
-*.log
 package-lock.json
 yarn.lock
-test.config.*
+yarn-error.log
+pnpm-lock.yaml
+.pnpm-debug.log
+node_modules
+build
+eslintWhitelist.json
+tsCheckWhiteList.json
+.nyc_output
+.husky/post-commit
+
+# test files
+*.m3u8
+# /*(^.d).ts
+/*.mp4

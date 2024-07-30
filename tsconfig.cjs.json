@@ -2,10 +2,9 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "declaration": true,
-    "outDir": "esm",
+    "outDir": "cjs",
     "target": "ESNext",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext"
+    "module": "commonjs"
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules/**", "__test__", "test", "src/**/*.spec.ts"]

@@ -1,13 +1,21 @@
-import nodemailer from 'nodemailer';
+/*
+ * @Author: renxia
+ * @Date: 2023-03-23 23:05:06
+ * @LastEditors: renxia
+ * @LastEditTime: 2024-07-30 15:16:19
+ * @Description:
+ */
+import nodemailer, { SendMailOptions } from 'nodemailer';
 import { PlainObject, toMailAddressList } from './utils';
+import type SMTPTransport from 'nodemailer/lib/smtp-transport';
 
 /**
  * sendMail(data) 发送邮件的数据配置
  * {@link https://nodemailer.com/message/ | 详细参考}
  */
-export interface ISmtpMsgOptions extends PlainObject {
-  from?: string;
+export interface ISmtpMsgOptions extends SendMailOptions {
   replayTo?: string;
+  from?: string;
   sender?: string;
   /** 邮件主题 */
   subject?: string;
@@ -21,38 +29,21 @@ export interface ISmtpMsgOptions extends PlainObject {
   cc?: string | string[];
   /** 暗抄送人列表 */
   bcc?: string | string[];
-  envelope?: {
-    from?: string;
-    to?: string;
-  };
-  /** 附件内容 */
-  attachments?: {
-    filename?: string;
-    path?: string;
-    content?: string | Buffer;
-    /** 在邮件正文中的引用 ID */
-    cid?: string;
-  }[];
 }
 
-export interface ISmtpConfig extends PlainObject {
+export interface ISmtpConfig extends SMTPTransport.Options {
   auth: {
-    /** login or oauth2 */
-    type?: string;
     /** 邮箱账号 */
     user?: string;
     /** 邮箱的授权码 */
     pass?: string;
-    accessToken?: string;
-  } & PlainObject;
+  };
   /** smtp 服务地址。如 QQ: smtp.qq.com; 网易163: smtp.163.com */
   host?: string;
   /** 端口号。QQ邮箱  465，网易邮箱 25 */
   port?: number;
-  secure?: boolean;
   pool?: boolean;
-  tls?: PlainObject;
-  sevice?: string;
+  service?: string;
 }
 
 /**
@@ -67,23 +58,11 @@ export async function sendMailBySmtp(options: ISmtpMsgOptions, smtpConfig: ISmtp
     /** 邮件发送返回的原始结果 */
     result: null as PlainObject,
   };
-  const mailOpts = Object.assign(
-    {
-      from: `Notify <${smtpConfig.auth.user}>`,
-      subject: 'Notify',
-      // attachments: [{
-      //     filename: 'data1.json',
-      //     path: path.resolve(__dirname, 'data1.json')
-      // }, {
-      //     filename: 'pic01.jpg',
-      //     path: path.resolve(__dirname, 'pic01.jpg')
-      // }, {
-      //     filename: 'test.txt',
-      //     path: path.resolve(__dirname, 'test.txt')
-      // }],
-    } as ISmtpMsgOptions,
-    options
-  );
+  const mailOpts: ISmtpMsgOptions = {
+    from: `Notify <${options.from || smtpConfig.auth.user}>`,
+    subject: 'Notify',
+    ...options,
+  };
 
   mailOpts.to = toMailAddressList(mailOpts.to);
 
@@ -97,17 +76,20 @@ export async function sendMailBySmtp(options: ISmtpMsgOptions, smtpConfig: ISmtp
 
   if (resultInfo.code) return resultInfo;
 
-  const transporter = nodemailer.createTransport(smtpConfig);
+  const transporter = nodemailer.createTransport<SMTPTransport.SentMessageInfo>(smtpConfig);
   try {
     const info = await transporter.sendMail(mailOpts);
 
-    resultInfo.code = info.responseCode || info.code || 0;
+    console.log(info);
+
+    resultInfo.code = info.accepted.length ? 0 : -1;
     resultInfo.msg = info.response;
     resultInfo.result = info;
-  } catch (error) {
+  } catch (err) {
+    const error = err as Error & { responseCode?: number; response?: string; code?: number };
     console.log(error);
     resultInfo.code = error.responseCode || error.code || 9001;
-    resultInfo.msg = error.response || error.message || error;
+    resultInfo.msg = error.response || error.message || (error as never);
   }
 
   return resultInfo;

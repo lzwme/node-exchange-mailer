@@ -1,8 +1,8 @@
 /*
  * @Author: lzw
  * @Date: 2021-01-14 21:35:47
- * @LastEditors: lzw
- * @LastEditTime: 2021-01-23 18:50:12
+ * @LastEditors: renxia
+ * @LastEditTime: 2024-07-30 13:57:22
  * @Description: send exchange mail by node-ews
  */
 import EWS from 'node-ews';
@@ -91,7 +91,8 @@ export interface IEwsSendOptions {
   /** node-ews: EWS 第二个参数，视不同 auth 类型而不同 */
   ewsOptions?: PlainObject;
   /** node-ews soapHeader */
-  soapHeader?: ISoapHeader | ((method, location, soapAction, args) => ISoapHeader);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  soapHeader?: ISoapHeader | ((method: string, location: string, soapAction: string, args: any) => ISoapHeader);
 }
 
 /**
@@ -112,7 +113,7 @@ export async function sendMailByEws(options: IEwsSendOptions) {
     {
       // auth: 'ntlm',
     },
-    options.ewsConfig
+    options.ewsConfig,
   );
 
   if (!ewsConfig.username || (!ewsConfig.password && !ewsConfig.lm_password)) {
@@ -214,7 +215,8 @@ export async function sendMailByEws(options: IEwsSendOptions) {
       if (cirMsg.MessageText) resultInfo.msg = cirMsg.MessageText;
       if (cirMsg.ResponseCode !== 'NoError') resultInfo.code = cirMsg.ResponseCode;
     }
-  } catch (err) {
+  } catch (error) {
+    const err = error as Error & { code?: number };
     console.log(err.message || 'ERROR:', '\n\n', err.stack);
     resultInfo.code = err.code || 9001;
     resultInfo.msg = err.message || err.stack;
